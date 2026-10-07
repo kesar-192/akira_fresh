@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AdPilot"
+description = "An agency workspace for managing client brands, building animated interactive social ads, scheduling campaigns, and tracking engagement."
+version = "1.0.0"
+id = "artifacts/adpilot"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18845
+
+[services.development]
+run = "pnpm --filter @workspace/adpilot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/adpilot", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/adpilot/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18845"
+BASE_PATH = "/"

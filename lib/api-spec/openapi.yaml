@@ -1,0 +1,854 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: AdPilot agency, brand, interactive ad, publishing, and analytics API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: workspace
+    description: Brand and agency workspace operations
+  - name: ads
+    description: Interactive ad management and public experiences
+  - name: publishing
+    description: Social accounts and scheduled posts
+  - name: insights
+    description: Dashboard, analytics, activity, and lead capture
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /brands:
+    get:
+      operationId: listBrands
+      tags: [workspace]
+      summary: List brands available in the workspace
+      responses:
+        "200":
+          description: Brand list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Brand"
+    post:
+      operationId: createBrand
+      tags: [workspace]
+      summary: Create a brand workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandInput"
+      responses:
+        "201":
+          description: Created brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Brand"
+  /brands/{brandId}:
+    parameters:
+      - $ref: "#/components/parameters/BrandId"
+    patch:
+      operationId: updateBrand
+      tags: [workspace]
+      summary: Update a brand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandUpdate"
+      responses:
+        "200":
+          description: Updated brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Brand"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteBrand
+      tags: [workspace]
+      summary: Delete a brand and its workspace data
+      responses:
+        "204":
+          description: Brand deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /brands/{brandId}/social-accounts:
+    parameters:
+      - $ref: "#/components/parameters/BrandId"
+    get:
+      operationId: listSocialAccounts
+      tags: [publishing]
+      summary: List connected social accounts for a brand
+      responses:
+        "200":
+          description: Social account list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialAccount"
+    post:
+      operationId: connectSocialAccount
+      tags: [publishing]
+      summary: Connect a social account through the mock adapter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SocialAccountInput"
+      responses:
+        "201":
+          description: Connected account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+  /social-accounts/{accountId}:
+    parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema: { type: integer }
+    delete:
+      operationId: disconnectSocialAccount
+      tags: [publishing]
+      summary: Disconnect a social account
+      responses:
+        "204":
+          description: Account disconnected
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /ads:
+    get:
+      operationId: listAds
+      tags: [ads]
+      summary: List ads with optional brand and status filters
+      parameters:
+        - name: brandId
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/AdStatus"
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Ad list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ad"
+    post:
+      operationId: createAd
+      tags: [ads]
+      summary: Create an interactive ad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdInput"
+      responses:
+        "201":
+          description: Created ad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ad"
+  /ads/{adId}:
+    parameters:
+      - name: adId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      operationId: getAd
+      tags: [ads]
+      summary: Get an ad
+      responses:
+        "200":
+          description: Ad details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ad"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateAd
+      tags: [ads]
+      summary: Update or publish an ad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdUpdate"
+      responses:
+        "200":
+          description: Updated ad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ad"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteAd
+      tags: [ads]
+      summary: Delete an ad
+      responses:
+        "204":
+          description: Ad deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /public/ads/{slug}:
+    get:
+      operationId: getPublicAd
+      tags: [ads]
+      summary: Resolve a published ad for public interaction
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Published ad and brand appearance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicAd"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /public/ads/{slug}/events:
+    post:
+      operationId: recordPublicAdEvent
+      tags: [insights]
+      summary: Record a public ad view, interaction, click, or completion
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdEventInput"
+      responses:
+        "201":
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdEvent"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /public/ads/{slug}/leads:
+    post:
+      operationId: submitPublicLead
+      tags: [insights]
+      summary: Submit lead details from a published ad
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadInput"
+      responses:
+        "201":
+          description: Lead captured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /scheduled-posts:
+    get:
+      operationId: listScheduledPosts
+      tags: [publishing]
+      summary: List scheduled and published posts
+      parameters:
+        - name: brandId
+          in: query
+          schema: { type: integer }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Post list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduledPost"
+    post:
+      operationId: createScheduledPost
+      tags: [publishing]
+      summary: Schedule a social post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduledPostInput"
+      responses:
+        "201":
+          description: Created scheduled post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledPost"
+  /scheduled-posts/{postId}:
+    parameters:
+      - name: postId
+        in: path
+        required: true
+        schema: { type: integer }
+    patch:
+      operationId: updateScheduledPost
+      tags: [publishing]
+      summary: Edit or change the status of a scheduled post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduledPostUpdate"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledPost"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteScheduledPost
+      tags: [publishing]
+      summary: Delete a scheduled post
+      responses:
+        "204":
+          description: Post deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [insights]
+      summary: Search and paginate captured leads
+      parameters:
+        - name: brandId
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Paginated leads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadPage"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [insights]
+      summary: Get agency or brand dashboard overview
+      parameters:
+        - name: brandId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Dashboard totals and activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /analytics:
+    get:
+      operationId: getAnalytics
+      tags: [insights]
+      summary: Get ad and platform analytics
+      parameters:
+        - name: brandId
+          in: query
+          schema: { type: integer }
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        "200":
+          description: Analytics aggregates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analytics"
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [insights]
+      summary: Get recent workspace activity
+      parameters:
+        - name: brandId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+  /team-members:
+    get:
+      operationId: listTeamMembers
+      tags: [workspace]
+      summary: List agency team members and pending invites
+      responses:
+        "200":
+          description: Team member list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamMember"
+    post:
+      operationId: inviteTeamMember
+      tags: [workspace]
+      summary: Create a pending team invitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamMemberInput"
+      responses:
+        "201":
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+  /team-members/{memberId}:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: integer }
+    patch:
+      operationId: updateTeamMember
+      tags: [workspace]
+      summary: Change a member's role or assigned brands
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamMemberUpdate"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: removeTeamMember
+      tags: [workspace]
+      summary: Remove a team member or pending invitation
+      responses:
+        "204":
+          description: Member removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  parameters:
+    BrandId:
+      name: brandId
+      in: path
+      required: true
+      schema: { type: integer }
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+    Brand:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        industry: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        logoUrl: { type: ["string", "null"] }
+        primaryColor: { type: string }
+        secondaryColor: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, name, primaryColor, secondaryColor, createdAt, updatedAt]
+    BrandInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        industry: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        logoUrl: { type: ["string", "null"] }
+        primaryColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$" }
+        secondaryColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$" }
+      required: [name, primaryColor, secondaryColor]
+    BrandUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        industry: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        logoUrl: { type: ["string", "null"] }
+        primaryColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$" }
+        secondaryColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$" }
+    AdType:
+      type: string
+      enum: [poll, quiz, spin_wheel, carousel, lead_form, swipe_cards]
+    AdStatus:
+      type: string
+      enum: [draft, published, archived]
+    Ad:
+      type: object
+      properties:
+        id: { type: integer }
+        brandId: { type: integer }
+        name: { type: string }
+        type: { $ref: "#/components/schemas/AdType" }
+        status: { $ref: "#/components/schemas/AdStatus" }
+        slug: { type: ["string", "null"] }
+        headline: { type: string }
+        body: { type: string }
+        imageUrl: { type: ["string", "null"] }
+        ctaLabel: { type: string }
+        accentColor: { type: string }
+        config:
+          type: object
+          additionalProperties: true
+        impressions: { type: integer }
+        interactions: { type: integer }
+        leads: { type: integer }
+        publishedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, brandId, name, type, status, headline, body, ctaLabel, accentColor, config, impressions, interactions, leads, createdAt, updatedAt]
+    AdInput:
+      type: object
+      properties:
+        brandId: { type: integer }
+        name: { type: string, minLength: 1 }
+        type: { $ref: "#/components/schemas/AdType" }
+        headline: { type: string }
+        body: { type: string }
+        imageUrl: { type: ["string", "null"] }
+        ctaLabel: { type: string }
+        accentColor: { type: string }
+        config:
+          type: object
+          additionalProperties: true
+      required: [brandId, name, type, headline, body, ctaLabel, accentColor, config]
+    AdUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { $ref: "#/components/schemas/AdType" }
+        status: { $ref: "#/components/schemas/AdStatus" }
+        headline: { type: string }
+        body: { type: string }
+        imageUrl: { type: ["string", "null"] }
+        ctaLabel: { type: string }
+        accentColor: { type: string }
+        config:
+          type: object
+          additionalProperties: true
+    PublicAd:
+      type: object
+      properties:
+        ad:
+          $ref: "#/components/schemas/Ad"
+        brand:
+          $ref: "#/components/schemas/Brand"
+      required: [ad, brand]
+    SocialPlatform:
+      type: string
+      enum: [instagram, facebook, linkedin, x]
+    SocialAccount:
+      type: object
+      properties:
+        id: { type: integer }
+        brandId: { type: integer }
+        platform: { $ref: "#/components/schemas/SocialPlatform" }
+        handle: { type: string }
+        status: { type: string, enum: [connected, disconnected] }
+        followers: { type: integer }
+        lastSyncedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+      required: [id, brandId, platform, handle, status, followers, createdAt]
+    SocialAccountInput:
+      type: object
+      properties:
+        platform: { $ref: "#/components/schemas/SocialPlatform" }
+        handle: { type: string, minLength: 1 }
+      required: [platform, handle]
+    AdEventInput:
+      type: object
+      properties:
+        eventType: { type: string, enum: [view, interaction, click, completion, lead_submit] }
+        metadata:
+          type: object
+          additionalProperties: true
+      required: [eventType]
+    AdEvent:
+      type: object
+      properties:
+        id: { type: integer }
+        adId: { type: integer }
+        eventType: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt: { type: string, format: date-time }
+      required: [id, adId, eventType, metadata, createdAt]
+    LeadInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        phone: { type: ["string", "null"] }
+        consent: { type: boolean }
+      required: [name, email, consent]
+    Lead:
+      type: object
+      properties:
+        id: { type: integer }
+        brandId: { type: integer }
+        adId: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: ["string", "null"] }
+        consent: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, brandId, adId, name, email, consent, createdAt]
+    LeadPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Lead" }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+      required: [items, page, pageSize, total, totalPages]
+    ScheduledPostStatus:
+      type: string
+      enum: [draft, scheduled, published, failed]
+    ScheduledPost:
+      type: object
+      properties:
+        id: { type: integer }
+        brandId: { type: integer }
+        adId: { type: ["integer", "null"] }
+        caption: { type: string }
+        platforms:
+          type: array
+          items: { $ref: "#/components/schemas/SocialPlatform" }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduledPostStatus" }
+        createdAt: { type: string, format: date-time }
+      required: [id, brandId, caption, platforms, scheduledAt, status, createdAt]
+    ScheduledPostInput:
+      type: object
+      properties:
+        brandId: { type: integer }
+        adId: { type: ["integer", "null"] }
+        caption: { type: string }
+        platforms:
+          type: array
+          items: { $ref: "#/components/schemas/SocialPlatform" }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduledPostStatus" }
+      required: [brandId, caption, platforms, scheduledAt]
+    ScheduledPostUpdate:
+      type: object
+      properties:
+        adId: { type: ["integer", "null"] }
+        caption: { type: string }
+        platforms:
+          type: array
+          items: { $ref: "#/components/schemas/SocialPlatform" }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduledPostStatus" }
+    DashboardSummary:
+      type: object
+      properties:
+        impressions: { type: integer }
+        interactions: { type: integer }
+        ctr: { type: number }
+        leads: { type: integer }
+        conversionRate: { type: number }
+        activeAds: { type: integer }
+        scheduledPosts: { type: integer }
+        impressionsChange: { type: number }
+        interactionsChange: { type: number }
+      required: [impressions, interactions, ctr, leads, conversionRate, activeAds, scheduledPosts, impressionsChange, interactionsChange]
+    AnalyticsPoint:
+      type: object
+      properties:
+        date: { type: string }
+        impressions: { type: integer }
+        interactions: { type: integer }
+        leads: { type: integer }
+      required: [date, impressions, interactions, leads]
+    TopAd:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { $ref: "#/components/schemas/AdType" }
+        impressions: { type: integer }
+        interactions: { type: integer }
+        ctr: { type: number }
+      required: [id, name, type, impressions, interactions, ctr]
+    PlatformMetric:
+      type: object
+      properties:
+        platform: { $ref: "#/components/schemas/SocialPlatform" }
+        impressions: { type: integer }
+        interactions: { type: integer }
+      required: [platform, impressions, interactions]
+    Analytics:
+      type: object
+      properties:
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/AnalyticsPoint" }
+        topAds:
+          type: array
+          items: { $ref: "#/components/schemas/TopAd" }
+        platforms:
+          type: array
+          items: { $ref: "#/components/schemas/PlatformMetric" }
+      required: [series, topAds, platforms]
+    Activity:
+      type: object
+      properties:
+        id: { type: integer }
+        brandId: { type: ["integer", "null"] }
+        action: { type: string }
+        target: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, action, target, createdAt]
+    TeamRole:
+      type: string
+      enum: [agency_admin, client, team_member]
+    TeamMemberStatus:
+      type: string
+      enum: [active, invited]
+    TeamMember:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: ["string", "null"] }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/TeamRole" }
+        brandIds:
+          type: array
+          items: { type: integer }
+        status: { $ref: "#/components/schemas/TeamMemberStatus" }
+        createdAt: { type: string, format: date-time }
+      required: [id, email, role, brandIds, status, createdAt]
+    TeamMemberInput:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/TeamRole" }
+        brandIds:
+          type: array
+          items: { type: integer }
+      required: [email, role, brandIds]
+    TeamMemberUpdate:
+      type: object
+      properties:
+        role: { $ref: "#/components/schemas/TeamRole" }
+        brandIds:
+          type: array
+          items: { type: integer }
