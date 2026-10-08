@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/artifacts/api-server/$1"
+      "destination": "https://YOUR-SERVICE.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
